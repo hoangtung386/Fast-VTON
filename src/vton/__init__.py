@@ -17,11 +17,13 @@ from src.vton.export import (
 )
 from src.vton.freezing import TrainableGroups, configure_trainable, count_parameters
 from src.vton.garment_encoder import GarmentEncoder
+from src.vton.hub import HUB_ASSETS, prefetch_hub_assets
 from src.vton.masking import build_agnostic_mask, mask_coverage, mask_vertical_extent
 from src.vton.precompute import build_cache
 from src.vton.trainer import Stage1Trainer, masked_latent_loss
 
 __all__ = [
+    "HUB_ASSETS",
     "BundleManifest",
     "CachedVtonDataset",
     "CheckpointConfig",
@@ -41,4 +43,5 @@ __all__ = [
     "mask_coverage",
     "mask_vertical_extent",
     "masked_latent_loss",
+    "prefetch_hub_assets",
 ]
