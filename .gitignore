@@ -3,7 +3,6 @@
 __pycache__/
 weights/
 result_*.png
-docs/
 .env
 *.egg-info/
 build/
