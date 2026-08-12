@@ -60,6 +60,16 @@ class CachedVtonDataset(Dataset):
             name: np.load(self.cache_dir / f"{name}.npy", mmap_mode="r") for name in names
         }
 
+    @property
+    def garment_resolution(self) -> int:
+        """Side length garments were preprocessed to when this cache was built.
+
+        The export bundle records it, so inference cannot silently feed the generator a
+        token sequence of a different length than the one it trained against. Caches
+        written before the field existed report the old fixed 224.
+        """
+        return int(self.meta.get("garment_resolution", 224))
+
     def __len__(self) -> int:
         return self.num_samples
 

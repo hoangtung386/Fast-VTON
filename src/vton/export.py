@@ -37,7 +37,7 @@ from src.vton.garment_encoder import GarmentEncoder
 logger = logging.getLogger(__name__)
 
 #: Bump when the payload layout changes incompatibly.
-BUNDLE_FORMAT_VERSION = 1
+BUNDLE_FORMAT_VERSION = 2
 
 _DTYPES: dict[str, torch.dtype] = {
     "fp16": torch.float16,
@@ -60,6 +60,10 @@ class BundleManifest:
     dtype: str
     includes_frozen: bool
     garment_backbone: str
+    #: Side length garments were preprocessed to. Inference must letterbox with
+    #: ``pad_to_square`` and resize to this, or the token sequence the generator's
+    #: cross-attention learned to read changes length and distribution underneath it.
+    garment_resolution: int
     generator_config: dict[str, Any]
     garment_config: dict[str, Any]
     inversion_config: dict[str, Any] | None = None
@@ -91,6 +95,7 @@ def export_bundle(
     step: int,
     height: int,
     width: int,
+    garment_resolution: int,
     inverse_model: InverseModel | None = None,
     include_frozen: bool = True,
     dtype: str = "fp16",
@@ -105,6 +110,9 @@ def export_bundle(
         step: Training step the weights come from, recorded in the manifest.
         height: Person image height the model was trained at.
         width: Person image width.
+        garment_resolution: Side length garment photographs were resized to during
+            training, after ``pad_to_square``. Recorded so inference cannot silently
+            feed a differently-shaped token sequence.
         inverse_model: Inversion network. Required when ``include_frozen`` is set, since
             try-on inference needs it to produce the starting noise.
         include_frozen: Bundle the frozen modules (inversion UNet, VAE, CLIP vision
@@ -137,6 +145,7 @@ def export_bundle(
         step=step,
         height=height,
         width=width,
+        garment_resolution=garment_resolution,
         inpainting_channels=generator.unet.config.in_channels,
         ip_num_tokens=generator.image_proj_model.clip_extra_context_tokens,
         clip_embeddings_dim=generator.image_proj_model.proj.in_features,

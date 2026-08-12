@@ -209,6 +209,7 @@ def build_cache(
         "width": data.width,
         "latent_height": data.latent_height,
         "latent_width": data.latent_width,
+        "garment_resolution": data.garment_resolution,
         "arrays": {spec.name: {"shape": list(spec.shape), "dtype": spec.dtype} for spec in specs},
     }
     (output_dir / CACHE_META_FILE).write_text(json.dumps(meta, indent=2))

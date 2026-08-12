@@ -75,6 +75,7 @@ def exported(tmp_path: Path) -> tuple[Path, _StubGenerator, GarmentEncoder]:
         step=1234,
         height=512,
         width=384,
+        garment_resolution=336,
         include_frozen=False,
         dtype="fp32",
         null_embedding=torch.randn(1, 77, CROSS_DIM),
@@ -89,6 +90,9 @@ def test_round_trip_preserves_weights(exported) -> None:
     assert loaded.manifest.step == 1234
     assert (loaded.manifest.height, loaded.manifest.width) == (512, 384)
     assert loaded.manifest.inpainting_channels == 9
+    # Inference phải tiền xử lý áo đúng độ phân giải này, nếu không chuỗi token đổi
+    # độ dài dưới chân cross-attention mà không báo gì.
+    assert loaded.manifest.garment_resolution == 336
     assert loaded.manifest.includes_frozen is False
     assert loaded.inversion_unet is None
 
@@ -130,6 +134,7 @@ def test_include_frozen_requires_inversion_model(tmp_path: Path) -> None:
             step=0,
             height=512,
             width=384,
+            garment_resolution=224,
             include_frozen=True,
         )
 
@@ -143,6 +148,7 @@ def test_rejects_unknown_dtype(tmp_path: Path) -> None:
             step=0,
             height=512,
             width=384,
+            garment_resolution=224,
             include_frozen=False,
             dtype="int8",
         )

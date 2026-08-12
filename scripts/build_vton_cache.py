@@ -28,6 +28,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--height", type=int, default=DataConfig().height)
     parser.add_argument("--width", type=int, default=DataConfig().width)
     parser.add_argument(
+        "--garment-resolution",
+        type=int,
+        default=DataConfig().garment_resolution,
+        help=(
+            "side length garment photos are resized to for DINOv2. Raising it is the "
+            "first knob to try for garment detail: 224 gives a 16x16 patch grid, so a "
+            "chest print lands on one or two tokens. Cache size scales with the token "
+            "count (6.1 GB at 224, 13.8 GB at 336, 24.4 GB at 448)"
+        ),
+    )
+    parser.add_argument(
         "--skip-garment-features",
         action="store_true",
         help="omit the ~6 GB DINOv2 cache and run the backbone during training instead",
@@ -52,7 +63,11 @@ def main() -> None:
         )
 
     data = DataConfig(
-        dataset_id=args.dataset, split=args.split, height=args.height, width=args.width
+        dataset_id=args.dataset,
+        split=args.split,
+        height=args.height,
+        width=args.width,
+        garment_resolution=args.garment_resolution,
     )
     dataset = load_dataset(args.dataset, split=args.split)
     if args.limit is not None:
