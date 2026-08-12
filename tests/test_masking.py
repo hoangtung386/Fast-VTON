@@ -69,6 +69,22 @@ def test_vertical_extent_of_empty_mask_is_zero() -> None:
     assert mask_vertical_extent(np.zeros((96, 64), dtype=np.uint8)) == (0.0, 0.0)
 
 
+def test_vertical_extent_ignores_a_sliver_running_to_the_frame_edge() -> None:
+    """The failure that made a waist-high VITON-HD mask read as floor-length."""
+    mask = np.zeros((96, 64), dtype=np.uint8)
+    mask[20:60, 10:50] = 1  # the real region, ends at 60/96
+    mask[60:96, 31:33] = 1  # two-pixel sliver down to the bottom edge
+
+    assert mask_vertical_extent(mask)[1] == pytest.approx(60 / 96, abs=0.02)
+    # Counting any single pixel is what produced the misleading 1.00.
+    assert mask_vertical_extent(mask, min_row_fraction=1 / 64)[1] == 1.0
+
+
+def test_vertical_extent_rejects_invalid_row_fraction() -> None:
+    with pytest.raises(ValueError, match="min_row_fraction"):
+        mask_vertical_extent(np.ones((8, 8), dtype=np.uint8), min_row_fraction=0.0)
+
+
 def test_vertical_extent_separates_equal_coverage_masks() -> None:
     """Two masks of identical area, one on the torso and one sliding onto the legs."""
     torso = np.zeros((96, 64), dtype=np.uint8)
