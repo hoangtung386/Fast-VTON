@@ -333,6 +333,7 @@ Colab Pro thường cấp **A100 40 GB**, không đảm bảo bản 80 GB. Kiể
 | `--gradient-accumulation-steps` | 2 | 1 |
 | gradient checkpointing | bật | bật |
 | precision | bf16 | bf16 |
+| `--mixed-precision` | `auto` | `auto` |
 | cache DINO feats | tuỳ (6.1 GB đĩa) | nên bật |
 
 ```
@@ -344,6 +345,17 @@ tổng                                ~15 GB
 ```
 
 Inference trên RTX 3090 24 GB: fp16 toàn bộ (F_θ + G + VAE + DINOv2) ≈ 3.2 GB.
+
+**bf16 không chạy trên T4.** `torch.cuda.is_bf16_supported()` đòi compute capability ≥ 8.0
+(Ampere); T4 là 7.5. Và `torch.autocast` chỉ kiểm điều đó ở **step đầu tiên**, nên ép bf16
+trên T4 làm job chết sau khi đã nạp xong 1.7 B tham số. `resolve_mixed_precision` trong
+`vton/trainer.py` giải quyết trước lúc dựng `Stage1Config`: `auto` lấy bf16 nếu có, fp16 nếu
+không, và `bf16` tường minh trên card không hỗ trợ thì báo lỗi ngay ở dòng lệnh. Đây là
+kiểu bug "phần cứng không hỗ trợ" mà chỉ mất vài giây để bắt nếu kiểm đúng chỗ, và vài phút
+nếu để autocast tự phát hiện.
+
+T4 16 GB chạy đủ hai cổng chặn (mask, overfit 8 mẫu) với `--batch-size 4`, hữu ích để soát
+đường ống mà không đốt quota A100.
 
 ## 2.8 Bốn chỗ bản nháp sai, đã sửa khi hiện thực hoá
 

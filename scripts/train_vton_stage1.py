@@ -14,6 +14,7 @@ from src.models import AuxiliaryModel, IPSBV2Model
 from src.vton import CachedVtonDataset, GarmentEncoder, Stage1Config, Stage1Trainer
 from src.vton.config import CheckpointConfig, DataConfig
 from src.vton.freezing import TrainableGroups
+from src.vton.trainer import MIXED_PRECISION_CHOICES, resolve_mixed_precision
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +35,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-steps", type=int, default=defaults.max_steps)
     parser.add_argument("--mask-loss-weight", type=float, default=defaults.mask_loss_weight)
     parser.add_argument(
-        "--mixed-precision", default=defaults.mixed_precision, choices=["no", "fp16", "bf16"]
+        "--mixed-precision",
+        default="auto",
+        choices=list(MIXED_PRECISION_CHOICES),
+        help=(
+            "auto picks bf16 on Ampere and newer, fp16 on older CUDA cards. bf16 on a "
+            "T4 (compute capability 7.5) has no hardware behind it and is rejected"
+        ),
     )
     parser.add_argument("--log-every", type=int, default=defaults.log_every)
     parser.add_argument("--checkpoint-every", type=int, default=defaults.checkpoint_every)
@@ -65,7 +72,7 @@ def main() -> None:
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         max_steps=args.max_steps,
         mask_loss_weight=args.mask_loss_weight,
-        mixed_precision=args.mixed_precision,
+        mixed_precision=resolve_mixed_precision(args.mixed_precision, args.device),
         log_every=args.log_every,
         checkpoint_every=args.checkpoint_every,
         output_dir=args.output_dir,

@@ -20,10 +20,16 @@ from src.vton.garment_encoder import GarmentEncoder
 from src.vton.hub import HUB_ASSETS, prefetch_hub_assets
 from src.vton.masking import build_agnostic_mask, mask_coverage, mask_vertical_extent
 from src.vton.precompute import build_cache
-from src.vton.trainer import Stage1Trainer, masked_latent_loss
+from src.vton.trainer import (
+    MIXED_PRECISION_CHOICES,
+    Stage1Trainer,
+    masked_latent_loss,
+    resolve_mixed_precision,
+)
 
 __all__ = [
     "HUB_ASSETS",
+    "MIXED_PRECISION_CHOICES",
     "BundleManifest",
     "CachedVtonDataset",
     "CheckpointConfig",
@@ -44,4 +50,5 @@ __all__ = [
     "mask_vertical_extent",
     "masked_latent_loss",
     "prefetch_hub_assets",
+    "resolve_mixed_precision",
 ]

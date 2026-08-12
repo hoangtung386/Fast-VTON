@@ -24,6 +24,51 @@ _AUTOCAST_DTYPES: dict[str, torch.dtype | None] = {
     "bf16": torch.bfloat16,
 }
 
+#: Accepted by :func:`resolve_mixed_precision`; ``"auto"`` never reaches the config.
+MIXED_PRECISION_CHOICES: tuple[str, ...] = ("auto", "no", "fp16", "bf16")
+
+
+def resolve_mixed_precision(requested: str = "auto", device: str | torch.device = "cuda") -> str:
+    """Turn a precision request into one the GPU on hand can actually run.
+
+    bfloat16 needs compute capability 8.0 - Ampere and later. A T4 is 7.5, and
+    ``torch.autocast`` only notices at the first training step, long after the weights
+    have loaded. Resolving up front moves that failure to the command line, where it
+    costs seconds instead of minutes.
+
+    Args:
+        requested: One of :data:`MIXED_PRECISION_CHOICES`. ``"auto"`` picks bf16 where
+            it is available, fp16 on older CUDA hardware, and disables autocast off-GPU.
+        device: Device training will run on.
+
+    Returns:
+        A concrete precision - ``"no"``, ``"fp16"`` or ``"bf16"``, never ``"auto"``.
+
+    Raises:
+        ValueError: The request is unknown, or bf16 was asked for on hardware that has
+            no bf16.
+    """
+    if requested not in MIXED_PRECISION_CHOICES:
+        raise ValueError(
+            f"mixed precision must be one of {MIXED_PRECISION_CHOICES}, got {requested!r}"
+        )
+
+    on_cuda = torch.device(device).type == "cuda" and torch.cuda.is_available()
+    # The same predicate torch.autocast checks, so this cannot disagree with it.
+    has_bf16 = on_cuda and torch.cuda.is_bf16_supported()
+
+    if requested == "auto":
+        choice = "bf16" if has_bf16 else ("fp16" if on_cuda else "no")
+        logger.info("mixed precision auto-selected: %s", choice)
+        return choice
+
+    if requested == "bf16" and not has_bf16:
+        raise ValueError(
+            "this device has no bfloat16 (it needs compute capability 8.0; a T4 is 7.5). "
+            "Pass --mixed-precision fp16, or auto to let it choose."
+        )
+    return requested
+
 
 def masked_latent_loss(
     prediction: torch.Tensor,
