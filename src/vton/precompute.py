@@ -28,7 +28,7 @@ from src.constants import INVERSION_TIMESTEP
 from src.models.auxiliary import AuxiliaryModel
 from src.models.inversion import InverseModel
 from src.vton.config import DataConfig
-from src.vton.garment_encoder import GarmentEncoder
+from src.vton.garment_encoder import GarmentEncoder, pad_to_square
 from src.vton.masking import build_agnostic_mask
 
 logger = logging.getLogger(__name__)
@@ -122,7 +122,7 @@ def build_cache(
     garment_tokens = None
     garment_dim = 0
     if garment_encoder is not None:
-        processor = GarmentEncoder.image_processor()
+        processor = GarmentEncoder.image_processor(resolution=data.garment_resolution)
         garment_dim = garment_encoder.backbone.config.hidden_size
         patch = garment_encoder.backbone.config.patch_size
         garment_tokens = 1 + (data.garment_resolution // patch) ** 2
@@ -184,8 +184,10 @@ def build_cache(
         }
 
         if garment_encoder is not None and processor is not None:
+            # Letterbox first: the stock DINOv2 crop would cut the neckline and hem off
+            # a 768x1024 product shot, and the encoder cannot infer what it never saw.
             pixel_values = processor(
-                images=[s["cloth"].convert("RGB") for s in samples], return_tensors="pt"
+                images=[pad_to_square(s["cloth"]) for s in samples], return_tensors="pt"
             ).pixel_values.to(device)
             batch_output["garment_features"] = garment_encoder.encode_frozen(pixel_values)
 

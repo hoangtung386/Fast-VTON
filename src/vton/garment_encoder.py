@@ -4,9 +4,40 @@ from __future__ import annotations
 
 import torch
 import torch.nn as nn
+from PIL import Image
 from transformers import AutoImageProcessor, Dinov2Config, Dinov2Model
 
 from src.constants import CROSS_ATTENTION_DIM, DINOV2_REPO
+
+#: Backdrop of the VITON-HD product shots, used when letterboxing them to a square.
+GARMENT_PAD_COLOUR: tuple[int, int, int] = (255, 255, 255)
+
+
+def pad_to_square(
+    image: Image.Image, fill: tuple[int, int, int] = GARMENT_PAD_COLOUR
+) -> Image.Image:
+    """Letterbox an image to a square without discarding any of it.
+
+    The DINOv2 processor's stock recipe - resize the shortest edge to 256, centre-crop
+    224 - throws away a third of a 768x1024 product shot, taking the neckline and the
+    hem with it. Those are exactly the features try-on has to reproduce, and no amount
+    of encoder capacity recovers what preprocessing already deleted. Padding trades a
+    little effective resolution for keeping the whole garment.
+
+    Args:
+        image: Source image, any aspect ratio.
+        fill: Colour for the added bars; white matches the VITON-HD backdrop.
+
+    Returns:
+        A square image with the original centred inside it.
+    """
+    width, height = image.size
+    if width == height:
+        return image
+    side = max(width, height)
+    canvas = Image.new("RGB", (side, side), fill)
+    canvas.paste(image.convert("RGB"), ((side - width) // 2, (side - height) // 2))
+    return canvas
 
 
 class GarmentEncoder(nn.Module):
@@ -76,9 +107,29 @@ class GarmentEncoder(nn.Module):
         return cls(cross_attention_dim=cross_attention_dim, backbone=backbone)
 
     @staticmethod
-    def image_processor(model_name: str = DINOV2_REPO) -> AutoImageProcessor:
-        """Return the matching preprocessing pipeline for raw PIL garments."""
-        return AutoImageProcessor.from_pretrained(model_name)
+    def image_processor(
+        model_name: str = DINOV2_REPO, resolution: int | None = None
+    ) -> AutoImageProcessor:
+        """Return the preprocessing pipeline for raw PIL garments.
+
+        Centre-cropping is switched off: callers pass square images through
+        :func:`pad_to_square`, so a crop would only shave off the edges again.
+
+        Args:
+            model_name: DINOv2 checkpoint whose normalisation statistics to use.
+            resolution: Side length to resize to, overriding the checkpoint's 224.
+                DINOv2 interpolates its position embeddings, so any multiple of the
+                patch size works. Must match ``DataConfig.garment_resolution``, which
+                is what the feature cache is shaped from.
+
+        Returns:
+            The configured processor.
+        """
+        processor = AutoImageProcessor.from_pretrained(model_name)
+        processor.do_center_crop = False
+        if resolution is not None:
+            processor.size = {"shortest_edge": resolution}
+        return processor
 
     @property
     def trainable_parameters(self) -> list[nn.Parameter]:
