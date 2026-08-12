@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from src.vton.masking import build_agnostic_mask, mask_coverage
+from src.vton.masking import build_agnostic_mask, mask_coverage, mask_vertical_extent
 
 SIZE = (64, 96)  # (width, height)
 
@@ -52,6 +52,32 @@ def test_largest_component_filter_drops_speckle() -> None:
 
     kept = build_agnostic_mask(person, agnostic, SIZE, morph_kernel=3, keep_largest_component=True)
     assert kept[3, 61] == 0, "speckle must be removed when filtering is on"
+
+
+def test_vertical_extent_matches_painted_rows() -> None:
+    person = _person()
+    agnostic = _agnostic_from(person, (20, 70, 10, 50))  # rows 20..69 of 96
+
+    mask = build_agnostic_mask(person, agnostic, SIZE, diff_threshold=12, morph_kernel=3)
+    top, bottom = mask_vertical_extent(mask)
+
+    assert top == pytest.approx(20 / 96, abs=0.03)
+    assert bottom == pytest.approx(70 / 96, abs=0.03)
+
+
+def test_vertical_extent_of_empty_mask_is_zero() -> None:
+    assert mask_vertical_extent(np.zeros((96, 64), dtype=np.uint8)) == (0.0, 0.0)
+
+
+def test_vertical_extent_separates_equal_coverage_masks() -> None:
+    """Two masks of identical area, one on the torso and one sliding onto the legs."""
+    torso = np.zeros((96, 64), dtype=np.uint8)
+    torso[20:60, 10:50] = 1
+    legs = np.zeros((96, 64), dtype=np.uint8)
+    legs[50:90, 10:50] = 1
+
+    assert mask_coverage(torso) == mask_coverage(legs)  # coverage cannot tell them apart
+    assert mask_vertical_extent(torso)[1] < mask_vertical_extent(legs)[1]
 
 
 def test_rejects_invalid_kernel() -> None:
