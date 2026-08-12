@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+swiftedit_weights/
+result_*.png
+docs/
+.env
+*.egg-info/
+build/
+dist/
+outputs/
+.pytest_cache/
+.ruff_cache/
