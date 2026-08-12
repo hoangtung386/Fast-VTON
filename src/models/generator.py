@@ -11,13 +11,13 @@ import torch.nn as nn
 from diffusers import UNet2DConditionModel
 from PIL import Image
 
-from swiftedit.attention.mask_controller import MaskController
-from swiftedit.attention.mask_processors import IPAttnProcessor2_0WithIPMaskController
-from swiftedit.attention.processors import AttnProcessor2_0, IPAttnProcessor2_0
-from swiftedit.constants import IP_NUM_TOKENS, LATENT_CHANNELS
-from swiftedit.models.auxiliary import AuxiliaryModel
-from swiftedit.models.projection import ImageProjModel
-from swiftedit.utils.text import tokenize_captions
+from src.attention.mask_controller import MaskController
+from src.attention.mask_processors import IPAttnProcessor2_0WithIPMaskController
+from src.attention.processors import AttnProcessor2_0, IPAttnProcessor2_0
+from src.constants import IP_NUM_TOKENS, LATENT_CHANNELS
+from src.models.auxiliary import AuxiliaryModel
+from src.models.projection import ImageProjModel
+from src.utils.text import tokenize_captions
 
 logger = logging.getLogger(__name__)
 

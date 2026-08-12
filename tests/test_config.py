@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from swiftedit.constants import VAE_SCALE_FACTOR
-from swiftedit.vton.config import CheckpointConfig, DataConfig, Stage1Config
+from src.constants import VAE_SCALE_FACTOR
+from src.vton.config import CheckpointConfig, DataConfig, Stage1Config
 
 
 def test_latent_dimensions_match_vae_downsampling() -> None:

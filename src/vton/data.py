@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from swiftedit.vton.precompute import CACHE_META_FILE
+from src.vton.precompute import CACHE_META_FILE
 
 #: Arrays every cache must provide.
 REQUIRED_ARRAYS: tuple[str, ...] = (
@@ -28,7 +28,7 @@ class CachedVtonDataset(Dataset):
     to fit in RAM and multiple dataloader workers share the page cache.
 
     Args:
-        cache_dir: Directory written by :func:`swiftedit.vton.precompute.build_cache`.
+        cache_dir: Directory written by :func:`src.vton.precompute.build_cache`.
         require_garment_features: Fail fast if the optional DINOv2 cache is absent.
     """
 

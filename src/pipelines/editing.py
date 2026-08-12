@@ -9,10 +9,10 @@ import torch
 from PIL import Image
 from torchvision.transforms.functional import to_tensor
 
-from swiftedit.attention.mask_controller import MaskController
-from swiftedit.constants import INVERSION_TIMESTEP
-from swiftedit.models.generator import DEFAULT_CONTROLLER_BLOCKS, IPSBV2Model
-from swiftedit.models.inversion import InverseModel
+from src.attention.mask_controller import MaskController
+from src.constants import INVERSION_TIMESTEP
+from src.models.generator import DEFAULT_CONTROLLER_BLOCKS, IPSBV2Model
+from src.models.inversion import InverseModel
 
 
 @dataclass(frozen=True)

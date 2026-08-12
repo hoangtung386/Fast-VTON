@@ -34,7 +34,7 @@ def finish(source: list[str]) -> list[str]:
 md("""
 # SwiftEdit → Virtual Try-On — Stage 1 trên Colab A100
 
-Notebook này **chỉ điều phối**: mọi logic nằm trong `src/swiftedit/`, ở đây chỉ gọi.
+Notebook này **chỉ điều phối**: mọi logic nằm trong `src/`, ở đây chỉ gọi.
 Đọc `docs/VTON_PLAN.md` để hiểu vì sao mỗi bước lại như vậy.
 
 **Luồng chạy**
@@ -94,7 +94,7 @@ else:
     !git clone -q {REPO_URL} {PROJECT}
 
 %cd {PROJECT}
-!ls src/swiftedit
+!ls src
 """)
 
 code("""
@@ -108,9 +108,9 @@ print("\\nKhởi động lại runtime NẾU Colab báo cần, rồi chạy ti�
 
 code("""
 %cd /content/SwiftEdit
-import swiftedit, torch
+import src, torch
 
-print("swiftedit", swiftedit.__version__)
+print("swiftedit", src.__version__)
 print("torch", torch.__version__, "| cuda", torch.cuda.is_available())
 """)
 
@@ -133,8 +133,9 @@ for part in "aa ab ac ad ae".split():
 !tar zxf swiftedit_weights.tar.gz
 !rm -f swiftedit_weights.tar.gz*
 !find swiftedit_weights -name '._*' -delete
+!mv swiftedit_weights weights          # archive giải nén ra swiftedit_weights/, code chờ weights/
 
-from swiftedit.vton import CheckpointConfig
+from src.vton import CheckpointConfig
 
 CHECKPOINTS = CheckpointConfig()
 CHECKPOINTS.validate()          # ném FileNotFoundError nếu thiếu bất cứ thứ gì
@@ -167,7 +168,7 @@ print(dataset)
 code("""
 import matplotlib.pyplot as plt
 
-from swiftedit.vton import DataConfig, build_agnostic_mask, mask_coverage
+from src.vton import DataConfig, build_agnostic_mask, mask_coverage
 
 DATA = DataConfig()          # 512x384, ngưỡng 12, kernel 9
 print(f"latent {DATA.latent_height}x{DATA.latent_width}, pil size {DATA.pil_size}")
@@ -291,7 +292,7 @@ code("""
 """)
 
 code("""
-from swiftedit.vton import CachedVtonDataset
+from src.vton import CachedVtonDataset
 
 cache = CachedVtonDataset("outputs/vton_cache")
 print(f"{len(cache)} mẫu")
@@ -367,7 +368,7 @@ md("""
 `export_bundle` ghi **một** file chứa mọi module cần cho inference cộng config để dựng
 lại chúng: generator (đã mở 9 kênh) + garment encoder + mạng nghịch đảo + VAE + CLIP
 vision + embedding rỗng. Máy đích **không cần** tải Hugging Face, **không cần**
-`swiftedit_weights/`, chỉ cần file này.
+`weights/`, chỉ cần file này.
 
 Vì sao là bundle state-dict chứ không phải `torch.save(model)`: pickle một module sống sẽ
 ghi lại đường dẫn class của từng submodule, nên file chết ngay khi có ai đổi tên class —
@@ -381,9 +382,9 @@ from pathlib import Path
 
 import torch
 
-from swiftedit.constants import INPAINTING_LATENT_CHANNELS
-from swiftedit.models import AuxiliaryModel, InverseModel, IPSBV2Model
-from swiftedit.vton import CheckpointConfig, GarmentEncoder, Stage1Config, Stage1Trainer
+from src.constants import INPAINTING_LATENT_CHANNELS
+from src.models import AuxiliaryModel, InverseModel, IPSBV2Model
+from src.vton import CheckpointConfig, GarmentEncoder, Stage1Config, Stage1Trainer
 
 CHECKPOINTS = CheckpointConfig()
 config = Stage1Config(output_dir=Path(RUN_DIR), max_steps=MAX_STEPS)
@@ -407,7 +408,7 @@ print("đã nạp checkpoint tại step", trainer.state.step)
 """)
 
 code("""
-from swiftedit.vton import export_bundle
+from src.vton import export_bundle
 
 BUNDLE_PATH = "/content/drive/MyDrive/vton_stage1/swiftedit_vton_full.pt"
 
@@ -426,7 +427,7 @@ export_bundle(
 """)
 
 code("""
-from swiftedit.vton import bundle_summary
+from src.vton import bundle_summary
 
 summary = bundle_summary(BUNDLE_PATH)
 print(f"file: {summary['file_size_bytes'] / 1e9:.2f} GB")
@@ -453,7 +454,7 @@ del generator, garment_encoder, inverse_model, aux_model, trainer
 gc.collect()
 torch.cuda.empty_cache()
 
-from swiftedit.vton import load_bundle
+from src.vton import load_bundle
 
 bundle = load_bundle(BUNDLE_PATH, device="cuda")
 print("step:", bundle.manifest.step)
@@ -471,7 +472,7 @@ md("""
 `swiftedit_vton_full.pt` đã nằm trên Drive. Trên server RTX 3090 chỉ cần:
 
 ```python
-from swiftedit.vton import load_bundle
+from src.vton import load_bundle
 
 bundle = load_bundle("swiftedit_vton_full.pt", device="cuda")
 ```

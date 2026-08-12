@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from swiftedit.constants import CROSS_ATTENTION_DIM, IP_NUM_TOKENS
+from src.constants import CROSS_ATTENTION_DIM, IP_NUM_TOKENS
 
 
 class ImageProjModel(nn.Module):

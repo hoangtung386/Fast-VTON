@@ -4,7 +4,7 @@ import pytest
 import torch
 from diffusers import UNet2DConditionModel
 
-from swiftedit.models.generator import expand_conv_in
+from src.models.generator import expand_conv_in
 
 
 @pytest.fixture(scope="module")

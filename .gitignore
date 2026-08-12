@@ -1,7 +1,7 @@
 .env
 .venv/
 __pycache__/
-swiftedit_weights/
+weights/
 result_*.png
 docs/
 .env

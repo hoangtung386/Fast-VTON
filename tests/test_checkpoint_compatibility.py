@@ -12,10 +12,10 @@ import torch.nn as nn
 from accelerate import init_empty_weights
 from diffusers import UNet2DConditionModel
 
-from swiftedit.constants import CROSS_ATTENTION_DIM, IP_NUM_TOKENS
-from swiftedit.models.generator import attention_hidden_size, install_ip_attn_processors
-from swiftedit.models.projection import ImageProjModel
-from swiftedit.vton.config import CheckpointConfig
+from src.constants import CROSS_ATTENTION_DIM, IP_NUM_TOKENS
+from src.models.generator import attention_hidden_size, install_ip_attn_processors
+from src.models.projection import ImageProjModel
+from src.vton.config import CheckpointConfig
 
 CHECKPOINTS = CheckpointConfig()
 HAVE_WEIGHTS = CHECKPOINTS.generator_dir.exists() and CHECKPOINTS.ip_adapter_path.exists()

@@ -9,8 +9,8 @@ import torch.nn.functional as F
 from diffusers.models.attention import Attention
 from einops import rearrange
 
-from swiftedit.attention.mask_controller import MaskController
-from swiftedit.attention.processors import (
+from src.attention.mask_controller import MaskController
+from src.attention.processors import (
     IPAttnProcessor2_0,
     finalize_attention,
     merge_heads,

@@ -27,7 +27,7 @@ Fast-VTON adapts [SwiftEdit](https://github.com/Qualcomm-AI-research/SwiftEdit)'
 ## Project Structure
 
 ```
-src/swiftedit/
+src/
 ├── attention/          # ARaM mask controller & processors
 ├── models/             # InverseModel, IPSBV2Model, AuxiliaryModel
 ├── pipelines/          # End-to-end edit_image()
@@ -73,9 +73,12 @@ for p in "aa ab ac ad ae"; do
 done
 cat swiftedit_weights.tar.gz.part-* > swiftedit_weights.tar.gz
 tar zxf swiftedit_weights.tar.gz && rm swiftedit_weights.tar.gz*
+
+# The archive extracts to swiftedit_weights/; this project expects weights/
+mv swiftedit_weights weights
 ```
 
-Expected directory: `swiftedit_weights/`
+Expected directory: `weights/`
 
 ## Inference
 

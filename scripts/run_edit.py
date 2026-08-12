@@ -9,10 +9,10 @@ from pathlib import Path
 
 from torchvision.utils import save_image
 
-from swiftedit.constants import DEFAULT_WEIGHTS_ROOT
-from swiftedit.models import AuxiliaryModel, InverseModel, IPSBV2Model
-from swiftedit.pipelines import EditConfig, edit_image
-from swiftedit.vton.config import CheckpointConfig
+from src.constants import DEFAULT_WEIGHTS_ROOT
+from src.models import AuxiliaryModel, InverseModel, IPSBV2Model
+from src.pipelines import EditConfig, edit_image
+from src.vton.config import CheckpointConfig
 
 logger = logging.getLogger(__name__)
 

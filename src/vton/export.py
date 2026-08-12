@@ -4,7 +4,7 @@ Training checkpoints hold only the ~33 M tensors Stage 1 moves, which is right f
 resuming but useless on a deployment box that has none of the frozen weights. This
 module writes the opposite artefact: one file carrying every module needed for
 inference, plus the configs to rebuild them, so the target machine needs no Hugging Face
-downloads and no local copy of ``swiftedit_weights/``.
+downloads and no local copy of ``weights/``.
 
 A bundle of state dicts is preferred over ``torch.save(model)``. Pickling a live module
 records the fully qualified class path of every submodule, so the file stops loading the
@@ -25,14 +25,14 @@ import torch.nn as nn
 from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPVisionModelWithProjection
 
-from swiftedit.models.generator import (
+from src.models.generator import (
     IPSBV2Model,
     expand_conv_in,
     install_ip_attn_processors,
 )
-from swiftedit.models.inversion import InverseModel
-from swiftedit.models.projection import ImageProjModel
-from swiftedit.vton.garment_encoder import GarmentEncoder
+from src.models.inversion import InverseModel
+from src.models.projection import ImageProjModel
+from src.vton.garment_encoder import GarmentEncoder
 
 logger = logging.getLogger(__name__)
 

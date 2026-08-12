@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from swiftedit.constants import (
+from src.constants import (
     DEFAULT_WEIGHTS_ROOT,
     DINOV2_REPO,
     GENERATOR_CHECKPOINT_DIR,

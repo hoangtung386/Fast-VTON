@@ -9,8 +9,8 @@ import torch
 from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
 from transformers import AutoTokenizer, CLIPTextModel
 
-from swiftedit.constants import SD_TURBO_REPO
-from swiftedit.utils.text import tokenize_captions
+from src.constants import SD_TURBO_REPO
+from src.utils.text import tokenize_captions
 
 _DTYPES: dict[str, torch.dtype] = {
     "fp16": torch.float16,

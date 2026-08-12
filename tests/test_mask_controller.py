@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from swiftedit.attention.mask_controller import MaskController
+from src.attention.mask_controller import MaskController
 
 
 def _controller(height: int, width: int) -> MaskController:

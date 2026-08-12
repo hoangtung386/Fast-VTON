@@ -8,10 +8,10 @@ import torch.nn as nn
 from diffusers import UNet2DConditionModel
 from transformers import Dinov2Config, Dinov2Model
 
-from swiftedit.models.generator import install_ip_attn_processors
-from swiftedit.models.projection import ImageProjModel
-from swiftedit.vton.export import bundle_summary, export_bundle, load_bundle
-from swiftedit.vton.garment_encoder import GarmentEncoder
+from src.models.generator import install_ip_attn_processors
+from src.models.projection import ImageProjModel
+from src.vton.export import bundle_summary, export_bundle, load_bundle
+from src.vton.garment_encoder import GarmentEncoder
 
 CROSS_DIM = 8
 CLIP_DIM = 12

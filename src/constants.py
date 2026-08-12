@@ -12,7 +12,7 @@ from typing import Final
 #: Backbone used by the inversion network (VAE, tokenizer, text encoder, scheduler).
 SD_TURBO_REPO: Final[str] = "stabilityai/sd-turbo"
 
-#: Backbone used by :class:`~swiftedit.models.auxiliary.AuxiliaryModel`.
+#: Backbone used by :class:`~src.models.auxiliary.AuxiliaryModel`.
 #:
 #: Upstream ``stabilityai/stable-diffusion-2-1-base`` was removed from the Hub and now
 #: returns 404 even for authenticated requests. This mirror carries byte-identical
@@ -33,7 +33,7 @@ DINOV2_REPO: Final[str] = "facebook/dinov2-large"
 # Local checkpoint layout (see README for download instructions)
 # --------------------------------------------------------------------------------------
 
-DEFAULT_WEIGHTS_ROOT: Final[Path] = Path("swiftedit_weights")
+DEFAULT_WEIGHTS_ROOT: Final[Path] = Path("weights")
 
 INVERSION_CHECKPOINT_DIR: Final[str] = "inverse_ckpt-120k"
 INVERSION_UNET_SUBFOLDER: Final[str] = "unet_ema"

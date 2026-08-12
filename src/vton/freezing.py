@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 import torch.nn as nn
 
-from swiftedit.models.generator import IPSBV2Model
-from swiftedit.vton.garment_encoder import GarmentEncoder
+from src.models.generator import IPSBV2Model
+from src.vton.garment_encoder import GarmentEncoder
 
 logger = logging.getLogger(__name__)
 

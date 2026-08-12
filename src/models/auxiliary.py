@@ -14,7 +14,7 @@ from transformers import (
     CLIPVisionModelWithProjection,
 )
 
-from swiftedit.constants import (
+from src.constants import (
     IP_ADAPTER_IMAGE_ENCODER_SUBFOLDER,
     IP_ADAPTER_REPO,
     SD21_BASE_REPO,

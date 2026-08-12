@@ -8,9 +8,9 @@ from pathlib import Path
 
 import torch
 
-from swiftedit.models import AuxiliaryModel, InverseModel
-from swiftedit.vton import GarmentEncoder, build_cache
-from swiftedit.vton.config import VITON_HD_DATASET, CheckpointConfig, DataConfig
+from src.models import AuxiliaryModel, InverseModel
+from src.vton import GarmentEncoder, build_cache
+from src.vton.config import VITON_HD_DATASET, CheckpointConfig, DataConfig
 
 logger = logging.getLogger(__name__)
 

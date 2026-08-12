@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from swiftedit.vton.masking import build_agnostic_mask, mask_coverage
+from src.vton.masking import build_agnostic_mask, mask_coverage
 
 SIZE = (64, 96)  # (width, height)
 

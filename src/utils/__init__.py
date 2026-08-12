@@ -1,5 +1,5 @@
 """Small shared helpers."""
 
-from swiftedit.utils.text import tokenize_captions
+from src.utils.text import tokenize_captions
 
 __all__ = ["tokenize_captions"]

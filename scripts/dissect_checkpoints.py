@@ -23,7 +23,7 @@ from pathlib import Path
 import torch
 from safetensors import safe_open
 
-from swiftedit.vton.config import CheckpointConfig
+from src.vton.config import CheckpointConfig
 
 
 def _rule(title: str) -> None:

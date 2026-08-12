@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from transformers import AutoImageProcessor, Dinov2Config, Dinov2Model
 
-from swiftedit.constants import CROSS_ATTENTION_DIM, DINOV2_REPO
+from src.constants import CROSS_ATTENTION_DIM, DINOV2_REPO
 
 
 class GarmentEncoder(nn.Module):

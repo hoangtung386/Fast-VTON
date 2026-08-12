@@ -11,10 +11,10 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from swiftedit.models.generator import IPSBV2Model
-from swiftedit.vton.config import Stage1Config
-from swiftedit.vton.freezing import TrainableGroups, configure_trainable
-from swiftedit.vton.garment_encoder import GarmentEncoder
+from src.models.generator import IPSBV2Model
+from src.vton.config import Stage1Config
+from src.vton.freezing import TrainableGroups, configure_trainable
+from src.vton.garment_encoder import GarmentEncoder
 
 logger = logging.getLogger(__name__)
 

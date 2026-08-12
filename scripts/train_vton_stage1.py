@@ -9,11 +9,11 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
-from swiftedit.constants import INPAINTING_LATENT_CHANNELS
-from swiftedit.models import AuxiliaryModel, IPSBV2Model
-from swiftedit.vton import CachedVtonDataset, GarmentEncoder, Stage1Config, Stage1Trainer
-from swiftedit.vton.config import CheckpointConfig, DataConfig
-from swiftedit.vton.freezing import TrainableGroups
+from src.constants import INPAINTING_LATENT_CHANNELS
+from src.models import AuxiliaryModel, IPSBV2Model
+from src.vton import CachedVtonDataset, GarmentEncoder, Stage1Config, Stage1Trainer
+from src.vton.config import CheckpointConfig, DataConfig
+from src.vton.freezing import TrainableGroups
 
 logger = logging.getLogger(__name__)
 

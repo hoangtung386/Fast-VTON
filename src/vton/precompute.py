@@ -24,12 +24,12 @@ import torch
 from PIL import Image
 from torchvision.transforms.functional import to_tensor
 
-from swiftedit.constants import INVERSION_TIMESTEP
-from swiftedit.models.auxiliary import AuxiliaryModel
-from swiftedit.models.inversion import InverseModel
-from swiftedit.vton.config import DataConfig
-from swiftedit.vton.garment_encoder import GarmentEncoder
-from swiftedit.vton.masking import build_agnostic_mask
+from src.constants import INVERSION_TIMESTEP
+from src.models.auxiliary import AuxiliaryModel
+from src.models.inversion import InverseModel
+from src.vton.config import DataConfig
+from src.vton.garment_encoder import GarmentEncoder
+from src.vton.masking import build_agnostic_mask
 
 logger = logging.getLogger(__name__)
 

@@ -6,20 +6,20 @@ self-guided mask. See ``docs/VTON_PLAN.md`` for the reasoning and the evidence b
 each choice.
 """
 
-from swiftedit.vton.config import CheckpointConfig, DataConfig, Stage1Config
-from swiftedit.vton.data import CachedVtonDataset
-from swiftedit.vton.export import (
+from src.vton.config import CheckpointConfig, DataConfig, Stage1Config
+from src.vton.data import CachedVtonDataset
+from src.vton.export import (
     BundleManifest,
     LoadedBundle,
     bundle_summary,
     export_bundle,
     load_bundle,
 )
-from swiftedit.vton.freezing import TrainableGroups, configure_trainable, count_parameters
-from swiftedit.vton.garment_encoder import GarmentEncoder
-from swiftedit.vton.masking import build_agnostic_mask, mask_coverage
-from swiftedit.vton.precompute import build_cache
-from swiftedit.vton.trainer import Stage1Trainer, masked_latent_loss
+from src.vton.freezing import TrainableGroups, configure_trainable, count_parameters
+from src.vton.garment_encoder import GarmentEncoder
+from src.vton.masking import build_agnostic_mask, mask_coverage
+from src.vton.precompute import build_cache
+from src.vton.trainer import Stage1Trainer, masked_latent_loss
 
 __all__ = [
     "BundleManifest",

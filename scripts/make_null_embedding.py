@@ -18,8 +18,8 @@ from pathlib import Path
 import torch
 from transformers import AutoTokenizer, CLIPTextModel
 
-from swiftedit.constants import SD_TURBO_REPO
-from swiftedit.utils.text import tokenize_captions
+from src.constants import SD_TURBO_REPO
+from src.utils.text import tokenize_captions
 
 logger = logging.getLogger(__name__)
 

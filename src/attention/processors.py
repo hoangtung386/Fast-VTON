@@ -21,7 +21,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from diffusers.models.attention import Attention
 
-from swiftedit.constants import IP_NUM_TOKENS
+from src.constants import IP_NUM_TOKENS
 
 
 def require_sdpa() -> None:
