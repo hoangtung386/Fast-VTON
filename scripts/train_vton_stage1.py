@@ -56,6 +56,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint-every", type=int, default=defaults.checkpoint_every)
     parser.add_argument("--num-workers", type=int, default=4)
     parser.add_argument(
+        "--no-gradient-checkpointing",
+        dest="gradient_checkpointing",
+        action="store_false",
+        help=(
+            "keep activations instead of recomputing them in backward. Checkpointing "
+            "trades roughly a third of the throughput for a large cut in activation "
+            "memory - a bad trade on a card with headroom to spare. Measured on an "
+            "A100 80 GB: batch 32 with checkpointing peaks at 10.1 GB of 80"
+        ),
+    )
+    parser.set_defaults(gradient_checkpointing=defaults.gradient_checkpointing)
+    parser.add_argument(
         "--train-image-kv",
         action="store_true",
         help="also unfreeze to_k_ip/to_v_ip (25.56 M more parameters)",
@@ -81,6 +93,7 @@ def main() -> None:
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         max_steps=args.max_steps,
         mask_loss_weight=args.mask_loss_weight,
+        gradient_checkpointing=args.gradient_checkpointing,
         mixed_precision=resolve_mixed_precision(args.mixed_precision, args.device),
         log_every=args.log_every,
         eval_every=args.eval_every,
@@ -94,7 +107,11 @@ def main() -> None:
         ),
         checkpoints=checkpoints,
     )
-    logger.info("effective batch size: %d", config.effective_batch_size)
+    logger.info(
+        "effective batch size: %d | gradient checkpointing: %s",
+        config.effective_batch_size,
+        "on" if config.gradient_checkpointing else "off",
+    )
 
     # Everything the cache already holds is dead weight on the GPU: the CLIP tower is
     # 2.53 GB, DINOv2 1.22 GB, the VAE 0.33 GB, and the training step touches none of
