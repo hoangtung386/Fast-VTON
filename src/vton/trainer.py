@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import torch
@@ -103,6 +103,11 @@ class TrainingState:
     step: int = 0
     samples_seen: int = 0
     best_val_loss: float = float("inf")
+    #: ``(step, loss)`` for every logged training window, and every validation pass.
+    #: Persisted so the curve survives resume and so downstream checks read the numbers
+    #: instead of asking a human to copy them out of the log by hand.
+    loss_history: list[tuple[int, float]] = field(default_factory=list)
+    val_history: list[tuple[int, float]] = field(default_factory=list)
 
     def epochs(self, dataset_size: int) -> float:
         """How many passes over the data the run has actually made.
@@ -334,6 +339,9 @@ class Stage1Trainer:
                         self.state.epochs(dataset_size),
                         self._memory_note(),
                     )
+                    self.state.loss_history.append(
+                        (self.state.step, running_loss / window)
+                    )
                     running_loss = 0.0
                     started = time.monotonic()
 
@@ -341,6 +349,7 @@ class Stage1Trainer:
                     val_loss = self.evaluate(val_dataloader)
                     best = val_loss < self.state.best_val_loss
                     self.state.best_val_loss = min(val_loss, self.state.best_val_loss)
+                    self.state.val_history.append((self.state.step, val_loss))
                     logger.info(
                         "step %d | val loss %.5f%s",
                         self.state.step,
@@ -400,6 +409,9 @@ class Stage1Trainer:
             {
                 "step": self.state.step,
                 "samples_seen": self.state.samples_seen,
+                "best_val_loss": self.state.best_val_loss,
+                "loss_history": self.state.loss_history,
+                "val_history": self.state.val_history,
                 "weights": self._trainable_state_dict(),
                 "optimizer": self.optimizer.state_dict(),
                 "scheduler": self.scheduler.state_dict(),
@@ -427,7 +439,12 @@ class Stage1Trainer:
         self.optimizer.load_state_dict(payload["optimizer"])
         self.scheduler.load_state_dict(payload["scheduler"])
         self.scaler.load_state_dict(payload["scaler"])
+        # `.get` throughout: checkpoints written before these fields existed still load.
         self.state = TrainingState(
-            step=payload["step"], samples_seen=payload.get("samples_seen", 0)
+            step=payload["step"],
+            samples_seen=payload.get("samples_seen", 0),
+            best_val_loss=payload.get("best_val_loss", float("inf")),
+            loss_history=[tuple(entry) for entry in payload.get("loss_history", [])],
+            val_history=[tuple(entry) for entry in payload.get("val_history", [])],
         )
         logger.info("resumed from %s at step %d", path, self.state.step)

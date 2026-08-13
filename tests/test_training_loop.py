@@ -171,3 +171,37 @@ def test_checkpoint_round_trip_preserves_counters(tmp_path: Path) -> None:
     restored.load_checkpoint(path)
     assert restored.state.step == trainer.state.step
     assert restored.state.samples_seen == trainer.state.samples_seen
+
+
+def test_loss_history_survives_the_checkpoint(tmp_path: Path) -> None:
+    """The gate reads these numbers instead of asking a human to retype them."""
+    trainer = _trainer(tmp_path, max_steps=4, log_every=1, eval_every=2)
+    trainer.train(
+        DataLoader(_StubDataset(8), batch_size=2, drop_last=True),
+        DataLoader(_StubDataset(4), batch_size=2),
+    )
+    assert len(trainer.state.loss_history) == 4
+    assert [step for step, _ in trainer.state.loss_history] == [1, 2, 3, 4]
+    assert [step for step, _ in trainer.state.val_history] == [2, 4]
+
+    restored = _trainer(tmp_path, max_steps=4, log_every=1, eval_every=2)
+    restored.load_checkpoint(tmp_path / "final.pt")
+    assert restored.state.loss_history == trainer.state.loss_history
+    assert restored.state.val_history == trainer.state.val_history
+    assert restored.state.best_val_loss == trainer.state.best_val_loss
+
+
+def test_load_checkpoint_tolerates_a_history_free_payload(tmp_path: Path) -> None:
+    """Checkpoints from the previous trainer must still resume, just without a curve."""
+    trainer = _trainer(tmp_path, max_steps=2)
+    trainer.train(DataLoader(_StubDataset(8), batch_size=2, drop_last=True))
+
+    payload = torch.load(tmp_path / "final.pt", map_location="cpu")
+    for key in ("loss_history", "val_history", "best_val_loss", "samples_seen"):
+        payload.pop(key)
+    torch.save(payload, tmp_path / "legacy.pt")
+
+    restored = _trainer(tmp_path, max_steps=2)
+    restored.load_checkpoint(tmp_path / "legacy.pt")
+    assert restored.state.loss_history == []
+    assert restored.state.best_val_loss == float("inf")
