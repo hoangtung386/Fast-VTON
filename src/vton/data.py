@@ -21,6 +21,31 @@ REQUIRED_ARRAYS: tuple[str, ...] = (
 )
 
 
+def split_indices(total: int, val_fraction: float) -> tuple[list[int], list[int]]:
+    """Deterministic train/validation split by index.
+
+    Deliberately not random: the split has to be identical across resumes, otherwise
+    validation loss compares against a different set each session and stops being a
+    time series. Every ``stride``-th sample is held out, which also spreads the
+    validation set evenly over a dataset that may be ordered by category.
+
+    Args:
+        total: Number of samples in the cache.
+        val_fraction: Share to hold out, in ``[0, 0.5)``.
+
+    Returns:
+        ``(train_indices, val_indices)``.
+    """
+    if not 0.0 <= val_fraction < 0.5:
+        raise ValueError("val_fraction must lie in [0, 0.5)")
+    if val_fraction == 0.0:
+        return list(range(total)), []
+    stride = max(round(1 / val_fraction), 2)
+    val = list(range(0, total, stride))
+    held = set(val)
+    return [i for i in range(total) if i not in held], val
+
+
 class CachedVtonDataset(Dataset):
     """Serve precomputed latents, masks and conditioning features.
 

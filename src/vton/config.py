@@ -116,6 +116,15 @@ class Stage1Config:
 
     checkpoint_every: int = 1_000
     log_every: int = 50
+    #: Steps between validation passes. The training loss at small batch sizes swings
+    #: more between windows than it improves over ten thousand steps; this is the
+    #: number to read instead.
+    eval_every: int = 1_000
+    #: Steps between preview PNGs. Zero disables them. Nothing else in the pipeline
+    #: looks at an image, so a run without previews is flying blind on quality.
+    preview_every: int = 2_000
+    #: Share of the cache held out. Fixed by index, so it survives resume.
+    val_fraction: float = 0.02
     output_dir: Path = Path("outputs/vton_stage1")
     cache_path: Path = Path("outputs/vton_cache.pt")
 
@@ -129,6 +138,13 @@ class Stage1Config:
             raise ValueError("warmup_fraction must lie in [0, 1)")
         if self.batch_size < 1 or self.gradient_accumulation_steps < 1:
             raise ValueError("batch_size and gradient_accumulation_steps must be >= 1")
+        if not 0.0 <= self.val_fraction < 0.5:
+            raise ValueError("val_fraction must lie in [0, 0.5)")
+        for name in ("eval_every", "checkpoint_every", "log_every"):
+            if getattr(self, name) < 1:
+                raise ValueError(f"{name} must be >= 1")
+        if self.preview_every < 0:
+            raise ValueError("preview_every must be >= 0")
 
     @property
     def effective_batch_size(self) -> int:

@@ -79,7 +79,10 @@ class GarmentEncoder(nn.Module):
             self.backbone.requires_grad_(False)
             self.backbone.eval()
 
-        hidden = self.backbone.config.hidden_size
+        self._build_head(self.backbone.config.hidden_size, cross_attention_dim)
+
+    def _build_head(self, hidden: int, cross_attention_dim: int) -> None:
+        """Create the projection head. Zero-initialised so step 0 is a no-op."""
         self.proj = nn.Sequential(
             nn.LayerNorm(hidden),
             nn.Linear(hidden, cross_attention_dim),
@@ -87,10 +90,34 @@ class GarmentEncoder(nn.Module):
             nn.Linear(cross_attention_dim, cross_attention_dim),
         )
         self.out_norm = nn.LayerNorm(cross_attention_dim)
+        nn.init.zeros_(self.proj[-1].weight)
+        nn.init.zeros_(self.proj[-1].bias)
 
-        final_linear = self.proj[-1]
-        nn.init.zeros_(final_linear.weight)
-        nn.init.zeros_(final_linear.bias)
+    @classmethod
+    def for_cached_features(
+        cls,
+        hidden_size: int,
+        cross_attention_dim: int = CROSS_ATTENTION_DIM,
+    ) -> GarmentEncoder:
+        """Build only the trainable head, with no DINOv2 tower behind it.
+
+        Stage 1 reads garment features from the cache, so the 306 M backbone sits idle
+        on the GPU for the whole run - 1.2 GB in fp32 that buys nothing. The checkpoint
+        stores only ``proj`` and ``out_norm`` anyway, so the full encoder can be
+        reassembled at export time from :meth:`from_config`.
+
+        Args:
+            hidden_size: Width of the cached features, i.e. the backbone's hidden size.
+            cross_attention_dim: Width the generator's cross-attention expects.
+
+        Returns:
+            An encoder whose :attr:`backbone` is ``None``.
+        """
+        encoder = cls.__new__(cls)
+        nn.Module.__init__(encoder)
+        encoder.backbone = None
+        encoder._build_head(hidden_size, cross_attention_dim)
+        return encoder
 
     @classmethod
     def from_config(
@@ -144,6 +171,10 @@ class GarmentEncoder(nn.Module):
             ``(batch, 1 + num_patches, hidden)`` - a CLS token followed by patch tokens.
             At 224 px with patch size 14 that is 257 tokens.
         """
+        if self.backbone is None:
+            raise RuntimeError(
+                "this encoder was built with for_cached_features() and has no backbone"
+            )
         return self.backbone(pixel_values).last_hidden_state
 
     def forward(

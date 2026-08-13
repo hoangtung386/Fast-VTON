@@ -185,7 +185,7 @@ class IPSBV2Model(nn.Module):
 
         self.image_proj_model = ImageProjModel(
             cross_attention_dim=self.unet.config.cross_attention_dim,
-            clip_embeddings_dim=aux_model.image_encoder.config.projection_dim,
+            clip_embeddings_dim=aux_model.clip_projection_dim,
             clip_extra_context_tokens=IP_NUM_TOKENS,
         ).to(self.device_)
 

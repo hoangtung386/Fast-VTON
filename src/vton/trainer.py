@@ -10,6 +10,7 @@ from pathlib import Path
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
+from torchvision.utils import save_image
 
 from src.models.generator import IPSBV2Model
 from src.vton.config import Stage1Config
@@ -101,6 +102,16 @@ class TrainingState:
 
     step: int = 0
     samples_seen: int = 0
+    best_val_loss: float = float("inf")
+
+    def epochs(self, dataset_size: int) -> float:
+        """How many passes over the data the run has actually made.
+
+        Logged every window because it is the number that exposes a mis-set batch size.
+        A run can report a healthy steps/s while seeing three epochs where it was meant
+        to see fifty.
+        """
+        return self.samples_seen / max(dataset_size, 1)
 
 
 class Stage1Trainer:
@@ -111,6 +122,8 @@ class Stage1Trainer:
         garment_encoder: Garment branch producing prompt-slot tokens.
         config: Hyper-parameters.
         groups: Which parameter groups to unfreeze.
+        vae: Frozen VAE, supplied only to decode preview images. Training never needs
+            it - the latents are cached - so leaving it ``None`` saves 0.33 GB.
     """
 
     def __init__(
@@ -119,10 +132,12 @@ class Stage1Trainer:
         garment_encoder: GarmentEncoder,
         config: Stage1Config,
         groups: TrainableGroups | None = None,
+        vae: object | None = None,
     ) -> None:
         self.generator = generator
         self.garment_encoder = garment_encoder
         self.config = config
+        self.vae = vae
         self.state = TrainingState()
 
         self.parameters = configure_trainable(generator, garment_encoder, groups)
@@ -192,15 +207,100 @@ class Stage1Trainer:
 
         return loss.item() * self.config.gradient_accumulation_steps
 
-    # --------------------------------------------------------------- training
+    # ------------------------------------------------------------- evaluation
 
-    def train(self, dataloader: DataLoader) -> TrainingState:
-        """Run until ``config.max_steps`` optimiser steps have been taken."""
-        config = self.config
+    @torch.no_grad()
+    def evaluate(self, dataloader: DataLoader) -> float:
+        """Mean loss over a held-out split.
+
+        Training loss alone cannot separate convergence from noise: at small batch
+        sizes its window-to-window swing can exceed the improvement of ten thousand
+        steps. A validation pass over a fixed split is quiet enough to read.
+        """
+        self.generator.eval()
+        self.garment_encoder.eval()
+        total, count = 0.0, 0
+        for batch in dataloader:
+            with torch.autocast(
+                "cuda", dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None
+            ):
+                loss = self.compute_loss(batch)
+            size = batch["z_person"].shape[0]
+            total += loss.item() * size
+            count += size
         self.generator.train()
         self.garment_encoder.train()
-        self.garment_encoder.backbone.eval()  # frozen; keep its norm statistics fixed
+        return total / max(count, 1)
 
+    @torch.no_grad()
+    def save_preview(self, batch: dict[str, torch.Tensor], name: str) -> Path | None:
+        """Decode one batch to a PNG strip: agnostic input, prediction, ground truth.
+
+        The one check no scalar can stand in for. A run can post a respectable loss
+        while emitting mush, and without this nobody finds out until the model reaches
+        a server. Needs the VAE; returns ``None`` when it was not supplied.
+        """
+        if self.vae is None:
+            return None
+
+        self.generator.eval()
+        self.garment_encoder.eval()
+        with torch.autocast(
+            "cuda", dtype=self.autocast_dtype, enabled=self.autocast_dtype is not None
+        ):
+            z_agnostic = batch["z_agnostic"].to(self.device, dtype=torch.float32)
+            mask = batch["mask_latent"].to(self.device, dtype=torch.float32)
+            prediction = self.generator.forward_train(
+                noisy_latent=(
+                    self.generator.alpha_t * z_agnostic
+                    + self.generator.sigma_t
+                    * batch["inverted_noise"].to(self.device, dtype=torch.float32)
+                ),
+                masked_latent=z_agnostic,
+                mask_latent=mask,
+                prompt_tokens=self.garment_encoder(
+                    cached_features=batch["garment_features"].to(self.device, torch.float32)
+                ),
+                ip_tokens=self.generator.image_proj_model(
+                    batch["clip_image_embeds"].to(self.device, torch.float32)
+                ),
+            )
+        self.generator.train()
+        self.garment_encoder.train()
+
+        scaling = self.vae.config.scaling_factor
+        rows = [
+            self.vae.decode(
+                (latents.float() / scaling).to(self.vae.dtype)
+            ).sample.float()
+            for latents in (
+                z_agnostic,
+                prediction,
+                batch["z_person"].to(self.device, dtype=torch.float32),
+            )
+        ]
+        grid = torch.cat([((row + 1) / 2).clamp(0, 1).cpu() for row in rows], dim=2)
+        path = self.config.output_dir / f"{name}.png"
+        save_image(grid, path, nrow=grid.shape[0])
+        logger.info("wrote preview %s", path)
+        return path
+
+    # --------------------------------------------------------------- training
+
+    def train(
+        self,
+        dataloader: DataLoader,
+        val_dataloader: DataLoader | None = None,
+    ) -> TrainingState:
+        """Run until ``config.max_steps`` optimiser steps have been taken."""
+        config = self.config
+        dataset_size = len(dataloader.dataset)
+        self.generator.train()
+        self.garment_encoder.train()
+        if self.garment_encoder.backbone is not None:
+            self.garment_encoder.backbone.eval()  # frozen; keep its norm statistics fixed
+
+        preview_batch = next(iter(val_dataloader or dataloader))
         micro_step = 0
         running_loss = 0.0
         started = time.monotonic()
@@ -218,16 +318,39 @@ class Stage1Trainer:
                 self.state.step += 1
                 if self.state.step % config.log_every == 0:
                     window = config.log_every * config.gradient_accumulation_steps
-                    elapsed = time.monotonic() - started
+                    elapsed = max(time.monotonic() - started, 1e-6)
+                    steps_per_second = config.log_every / elapsed
+                    # samples/s, not steps/s: a run at batch 1 posts a healthy steps/s
+                    # while moving sixteen times less data than it was meant to.
                     logger.info(
-                        "step %d/%d | loss %.5f | lr %.2e | %.2f steps/s",
+                        "step %d/%d | loss %.5f | lr %.2e | %.1f samples/s "
+                        "(%.2f steps/s) | epoch %.2f%s",
                         self.state.step,
                         config.max_steps,
                         running_loss / window,
                         self.scheduler.get_last_lr()[0],
-                        config.log_every / max(elapsed, 1e-6),
+                        steps_per_second * config.effective_batch_size,
+                        steps_per_second,
+                        self.state.epochs(dataset_size),
+                        self._memory_note(),
                     )
                     running_loss = 0.0
+                    started = time.monotonic()
+
+                if val_dataloader is not None and self.state.step % config.eval_every == 0:
+                    val_loss = self.evaluate(val_dataloader)
+                    best = val_loss < self.state.best_val_loss
+                    self.state.best_val_loss = min(val_loss, self.state.best_val_loss)
+                    logger.info(
+                        "step %d | val loss %.5f%s",
+                        self.state.step,
+                        val_loss,
+                        "  <- best so far" if best else "",
+                    )
+                    started = time.monotonic()
+
+                if config.preview_every and self.state.step % config.preview_every == 0:
+                    self.save_preview(preview_batch, f"preview_{self.state.step:06d}")
                     started = time.monotonic()
 
                 if self.state.step % config.checkpoint_every == 0:
@@ -235,8 +358,17 @@ class Stage1Trainer:
                 if self.state.step >= config.max_steps:
                     break
 
+        self.save_preview(preview_batch, "preview_final")
         self.save_checkpoint(final=True)
         return self.state
+
+    def _memory_note(self) -> str:
+        """Peak VRAM so far, so an idle GPU is visible in the log rather than in nvidia-smi."""
+        if not torch.cuda.is_available():
+            return ""
+        total = torch.cuda.get_device_properties(0).total_memory / 1e9
+        peak = torch.cuda.max_memory_allocated() / 1e9
+        return f" | vram {peak:.1f}/{total:.0f} GB"
 
     # ------------------------------------------------------------ checkpoints
 
